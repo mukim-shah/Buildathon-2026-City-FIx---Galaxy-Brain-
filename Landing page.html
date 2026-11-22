@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CityFix – Report it. Track it. Fixed.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=Source+Sans+3:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --asphalt: #1b2430;
+        --asphalt-2: #263344;
+        --line: #f6c90e; /* road-marking yellow */
+        --paper: #f3f4f1;
+        --ink: #1b2430;
+        --muted: #5d6877;
+        --ok: #1f8a5b;
+        --err: #c0392b;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          "Source Sans 3",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        line-height: 1.5;
+      }
+      .page {
+        min-height: 100%;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+      }
+
+      /* ---------- Left: the road ---------- */
+      .road {
+        background: var(--asphalt);
+        color: #fff;
+        padding: 40px 56px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+      .road::after {
+        /* dashed centre line, the one signature element */
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        background: repeating-linear-gradient(
+          to bottom,
+          var(--line) 0 34px,
+          transparent 34px 64px
+        );
+      }
+      .brand {
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: 0.01em;
+      }
+      .brand span {
+        color: var(--line);
+      }
+      .road h1 {
+        font-family: "Archivo", sans-serif;
+        font-stretch: 78%;
+        font-weight: 800;
+        font-size: clamp(2.8rem, 6.5vw, 5.4rem);
+        line-height: 0.98;
+        margin-bottom: 20px;
+      }
+      .road p.lead {
+        max-width: 46ch;
+        color: #c9d1dc;
+        font-size: 1.15rem;
+      }
+      .facts {
+        display: flex;
+        gap: 36px;
+        flex-wrap: wrap;
+        color: #c9d1dc;
+        font-size: 0.95rem;
+      }
+      .facts strong {
+        display: block;
+        color: #fff;
+        font-family: "Archivo", sans-serif;
+        font-size: 1.4rem;
+      }
+
+      /* ---------- Right: login ---------- */
+      .login {
+        display: grid;
+        place-items: center;
+        padding: 40px 28px;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+      }
+      .card h2 {
+        font-family: "Archivo", sans-serif;
+        font-size: 1.9rem;
+        margin-bottom: 6px;
+      }
+      .card .sub {
+        color: var(--muted);
+        margin-bottom: 24px;
+      }
+
+      .roles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: #e2e5e0;
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 26px;
+      }
+      .roles button {
+        border: 0;
+        background: transparent;
+        padding: 11px 8px;
+        border-radius: 7px;
+        cursor: pointer;
+        font:
+          600 1rem "Source Sans 3",
+          sans-serif;
+        color: var(--muted);
+      }
+      .roles button[aria-selected="true"] {
+        background: var(--asphalt);
+        color: #fff;
+      }
+      .roles button:focus-visible,
+      input:focus-visible,
+      .submit:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--line);
+        outline-offset: 2px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .field {
+        margin-bottom: 18px;
+      }
+      input[type="email"],
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        padding: 13px 14px;
+        font: inherit;
+        border: 1.5px solid #b9c0ca;
+        border-radius: 8px;
+        background: #fff;
+      }
+      input:focus {
+        border-color: var(--asphalt);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95rem;
+        margin-bottom: 22px;
+      }
+      .row a {
+        color: var(--asphalt);
+        font-weight: 600;
+      }
+      .submit {
+        width: 100%;
+        padding: 14px;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        background: var(--line);
+        color: var(--ink);
+        font:
+          800 1.05rem "Archivo",
+          sans-serif;
+      }
+      .submit:hover {
+        filter: brightness(0.95);
+      }
+      .msg {
+        min-height: 1.4em;
+        margin-top: 14px;
+        font-weight: 600;
+      }
+      .msg.err {
+        color: var(--err);
+      }
+      .msg.ok {
+        color: var(--ok);
+      }
+      .alt {
+        margin-top: 22px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .alt a {
+        color: var(--asphalt);
+        font-weight: 600;
+      }
+      @media (max-width: 860px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+        .road {
+          padding: 28px 24px 40px;
+          gap: 28px;
+        }
+        .road::after {
+          top: auto;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: auto;
+          height: 6px;
+          background: repeating-linear-gradient(
+            to right,
+            var(--line) 0 34px,
+            transparent 34px 64px
+          );
+        }
+        .road h1 {
+          font-size: 2.8rem;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .roles button {
+          transition:
+            background 0.2s,
+            color 0.2s;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <div class="page">
+      <section class="road" aria-label="About CityFix">
+        <div class="brand">City<span>Fix</span></div>
+        <div>
+          <h1>Your street.<br />Your report.<br />Fixed.</h1>
+          <p class="lead">
+            Report potholes, broken lights and unsafe spots in under a minute.
+            City teams see it, assign it and update you until it is done.
+          </p>
+        </div>
+        <div class="facts">
+          <div><strong>1 minute</strong>to file a report</div>
+          <div><strong>Live status</strong>on every issue</div>
+          <div><strong>One place</strong>for citizens and staff</div>
+        </div>
+      </section>
+
+      <main class="login">
+        <div class="card">
+          <h2>Log in</h2>
+          <p class="sub" id="sub">
+            Check the status of the issues you reported.
+          </p>
+
+          <div class="roles" role="tablist" aria-label="Choose how you log in">
+            <button
+              role="tab"
+              id="tab-citizen"
+              aria-selected="true"
+              data-role="citizen"
+            >
+              Citizen
+            </button>
+            <button
+              role="tab"
+              id="tab-admin"
+              aria-selected="false"
+              data-role="admin"
+            >
+              Admin
+            </button>
+          </div>
+
+          <form id="loginForm" novalidate>
+            <div class="field">
+              <label for="email" id="emailLabel">Email</label>
+              <input
+                type="email"
+                id="email"
+                autocomplete="username"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                autocomplete="current-password"
+                placeholder="At least 6 characters"
+                required
+              />
+            </div>
+            <div class="row">
+              <span
+                ><input type="checkbox" id="remember" />
+                <label for="remember" style="display: inline; font-weight: 400"
+                  >Keep me logged in</label
+                ></span
+              >
+              <a href="#">Forgot password?</a>
+            </div>
+            <button type="submit" class="submit" id="submitBtn">
+              Log in as citizen
+            </button>
+            <div class="msg" id="msg" role="status" aria-live="polite"></div>
+          </form>
+
+          <p class="alt" id="alt">
+            New here? <a href="register.html">Create a citizen account</a>
+          </p>
+        </div>
+      </main>
+    </div>
+    <script>
+      var role = "citizen";
+      var tabs = document.querySelectorAll(".roles button");
+      var msg = document.getElementById("msg");
+
+      var text = {
+        citizen: {
+          sub: "Check the status of the issues you reported.",
+          label: "Email",
+          placeholder: "you@example.com",
+          btn: "Log in as citizen",
+          alt: 'New here? <a href="register.html">Create a citizen account</a>',
+        },
+        admin: {
+          sub: "Manage, assign and close reported issues.",
+          label: "Official email",
+          placeholder: "name@city.gov.in",
+          btn: "Log in as admin",
+          alt: "Admin accounts are created by your department head.",
+        },
+      };
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          role = tab.dataset.role;
+          tabs.forEach(function (t) {
+            t.setAttribute("aria-selected", t === tab ? "true" : "false");
+          });
+          var t = text[role];
+          document.getElementById("sub").textContent = t.sub;
+          document.getElementById("emailLabel").textContent = t.label;
+          document.getElementById("email").placeholder = t.placeholder;
+          document.getElementById("submitBtn").textContent = t.btn;
+          document.getElementById("alt").innerHTML = t.alt;
+          msg.textContent = "";
+          msg.className = "msg";
+        });
+      });
+
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          var email = document.getElementById("email").value.trim();
+          var pass = document.getElementById("password").value;
+          msg.className = "msg err";
+
+          if (!/^\S+@\S+\.\S+$/.test(email)) {
+            msg.textContent = "Enter a valid email address.";
+            return;
+          }
+          if (pass.length < 6) {
+            msg.textContent = "Password must be at least 6 characters.";
+            return;
+          }
+
+          /* TODO: replace this block with a real call to your backend, e.g.
+           fetch("/api/login", { method: "POST", headers: {"Content-Type":"application/json"},
+             body: JSON.stringify({ email: email, password: pass, role: role }) }) */
+          msg.className = "msg ok";
+          msg.textContent = "Logged in as " + role + ". Redirecting...";
+          setTimeout(function () {
+            window.location.href =
+              role === "admin"
+                ? "admin-dashboard.html"
+                : "citizen-dashboard.html";
+          }, 900);
+        });
+    </script>
+  </body>
+</html>
