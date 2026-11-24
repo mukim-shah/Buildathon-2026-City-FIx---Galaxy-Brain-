@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SafeStreet AI – Citizen map</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=Source+Sans+3:wght@400;600&display=swap"
+      rel="stylesheet"/>
+    <style>
+      :root {
+        --asphalt: #1b2430;
+        --line: #f6c90e;
+        --paper: #f3f4f1;
+        --ink: #1b2430;
+        --muted: #5d6877;
+        --rule: #d9ddd6;
+        --good: #1f8a5b;
+        --mid: #d98a00;
+        --bad: #c0392b;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Source Sans 3", system-ui, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        line-height: 1.45;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      h1,h2,h3,.brand,button {
+        font-family: "Archivo", system-ui, sans-serif;
+      }
+      :focus-visible {
+        outline: 3px solid var(--line);
+        outline-offset: 2px;
+      }
+
+      .top {
+        background: var(--asphalt);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 22px;
+        border-bottom: 4px solid var(--line);
+      }
+      .brand {
+        font-weight: 800;
+        font-size: 1.3rem;
+      }
+      .brand span {
+        color: var(--line);
+      }
+      .top .who {
+        font-size: 0.95rem;
+        color: #c9d1dc;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .top a {
+        color: #fff;
+        font-weight: 600;
+      }
+
+      .app {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 440px 1fr;
+      }
+      .side {
+        background: #fff;
+        border-right: 1px solid var(--rule);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .mapwrap {
+        position: relative;
+        min-height: 0;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-bottom: 1px solid var(--rule);
+      }
+      .tabs button {
+        border: 0;
+        background: none;
+        padding: 14px 6px;
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: var(--muted);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+      }
+      .tabs button[aria-selected="true"] {
+        color: var(--ink);
+        border-bottom-color: var(--line);
+      }
+      .panel {
+        padding: 18px 20px 28px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .panel[hidden] {
+        display: none;
+      }
+      .panel h2 {
+        font-size: 1.25rem;
+        margin-bottom: 4px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 0.93rem;
+        margin-bottom: 14px;
+      }
+
+      .route {
+        border: 1.5px solid var(--rule);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        background: #fff;
+        width: 100%;
+        text-align: left;
+        display: block;
+        font-family: inherit;
+      }
+      .route[aria-pressed="true"] {
+        border-color: var(--asphalt);
+        box-shadow: inset 5px 0 0 var(--c);
+      }
+      .route .r1 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .route strong {
+        font-size: 1.02rem;
+      }
+      .route small {
+        color: var(--muted);
+        font-size: 0.9rem;
+        display: block;
+        margin-top: 2px;
+      }
+      .score {
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        font-size: 0.95rem;
+        padding: 3px 9px;
+        border-radius: 20px;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .g {
+        background: var(--good);
+      }
+      .m {
+        background: var(--mid);
+      }
+      .b {
+        background: var(--bad);
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 16px;
+        font-weight: 800;
+        cursor: pointer;
+        background: var(--line);
+        color: var(--ink);
+        font-size: 0.98rem;
+      }
+      .btnrow {
+        display: flex;
+        gap: 8px;
+        margin: 4px 0 16px;
+      }
+
+      .ind {
+        display: grid;
+        grid-template-columns: 110px 1fr 34px;
+        align-items: center;
+        gap: 10px;
+        margin: 7px 0;
+        font-size: 0.95rem;
+      }
+      .bar {
+        height: 9px;
+        background: #e8ebe6;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        border-radius: 5px;
+      }
+      .box {
+        border-top: 1px solid var(--rule);
+        margin-top: 16px;
+        padding-top: 14px;
+      }
+      .box h3 {
+        font-size: 1rem;
+        margin-bottom: 8px;
+      }
+      .box ul {
+        padding-left: 18px;
+        font-size: 0.95rem;
+      }
+      .box li {
+        margin: 4px 0;
+      }
+
+      .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        margin-top: 6px;
+      }
+      .tbl th,
+      .tbl td {
+        padding: 8px 6px;
+        text-align: center;
+        border-bottom: 1px solid var(--rule);
+      }
+      .tbl th:first-child,
+      .tbl td:first-child {
+        text-align: left;
+      }
+      .tbl td.best {
+        background: #fff6c7;
+        font-weight: 700;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 12px 0 5px;
+      }
+      select,
+      textarea {
+        width: 100%;
+        padding: 11px 12px;
+        font: inherit;
+        border: 1.5px solid #b9c0ca;
+        border-radius: 8px;
+        background: #fff;
+      }
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+      .loc {
+        padding: 10px 12px;
+        background: #f3f4f1;
+        border-radius: 8px;
+        font-size: 0.93rem;
+        color: var(--muted);
+      }
+      .loc.set {
+        color: var(--good);
+        font-weight: 600;
+      }
+      .msg {
+        margin-top: 10px;
+        font-weight: 600;
+        min-height: 1.3em;
+      }
+      .msg.err {
+        color: var(--bad);
+      }
+      .msg.ok {
+        color: var(--good);
+      }
+
+      .filters {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .chip {
+        border: 1.5px solid var(--rule);
+        background: #fff;
+        border-radius: 20px;
+        padding: 5px 13px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      .chip[aria-pressed="true"] {
+        background: var(--asphalt);
+        color: #fff;
+        border-color: var(--asphalt);
+      }
+      .issue {
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .issue .t {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .issue b {
+        font-size: 1rem;
+      }
+      .issue p {
+        margin: 5px 0 8px;
+        font-size: 0.95rem;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 0.87rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .badge {
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 20px;
+        background: #e8ebe6;
+        white-space: nowrap;
+      }
+      .st-reported {
+        background: #fde2df;
+        color: #8f2a1f;
+      }
+      .st-review {
+        background: #fff0c2;
+        color: #7a5200;
+      }
+      .st-assigned {
+        background: #dbe8fb;
+        color: #1c4a8f;
+      }
+      .st-fixed {
+        background: #d6f0e3;
+        color: #14633f;
+      }
+      .track {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
+        margin: 8px 0 4px;
+      }
+      .track i {
+        height: 5px;
+        border-radius: 3px;
+        background: #e0e4dd;
+      }
+      .track i.on {
+        background: var(--good);
+      }
+      .mini {
+        border: 1.5px solid var(--rule);
+        background: #fff;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .legend {
+        position: absolute;
+        left: 12px;
+        bottom: 22px;
+        z-index: 500;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+      }
+      .legend span {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin: 0 4px 0 8px;
+      }
+      .legend span:first-child {
+        margin-left: 0;
+      }
+
+      @media (max-width: 900px) {
+        body {
+          height: auto;
+        }
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .mapwrap {
+          height: 55vh;
+          order: -1;
+        }
+        .side {
+          border-right: 0;
+        }
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+      .notice {
+        background: #fff6c7;
+        border-bottom: 1px solid #e6d27a;
+        padding: 7px 22px;
+        font-size: 0.9rem;
+      }
+      .sel2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .disc {
+        background: #f3f4f1;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+      .lim {
+        background: #fff6c7;
+        border: 1px solid #e6d27a;
+        border-radius: 8px;
+        padding: 12px;
+        font-weight: 600;
+        margin-top: 12px;
+      }
+      .mapfilter {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        z-index: 500;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 10px;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+        width: 210px;
+      }
+      .mapfilter label {
+        margin: 0 0 4px;
+        font-size: 0.85rem;
+      }
+      .st-pending {
+        background: #fff0c2;
+        color: #7a5200;
+      }
+      .st-verified {
+        background: #dbe8fb;
+        color: #1c4a8f;
+      }
+      .st-resolved {
+        background: #d6f0e3;
+        color: #14633f;
+      }
+      .st-rejected {
+        background: #e8ebe6;
+        color: #444;
+      }
+      .track {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      input[type="file"] {
+        width: 100%;
+        font: inherit;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">Safe<span>Street</span> AI</div>
+      <div class="who">
+        <span>Signed in as Citizen</span><a href="index.html">Log out</a>
+      </div>
+    </header>
+    <div class="notice">
+      <b>Demo data.</b> Routes, scores and reports shown here are sample data,
+      not verified real-world observations.
+    </div>
+
+    <div class="app">
+      <aside class="side">
+        <div class="tabs" role="tablist">
+          <button role="tab" id="t-routes" aria-selected="true" data-p="routes">
+            Routes
+          </button>
+          <button
+            role="tab"
+            id="t-report"
+            aria-selected="false"
+            data-p="report"
+          >
+            Report issue
+          </button>
+          <button
+            role="tab"
+            id="t-community"
+            aria-selected="false"
+            data-p="community"
+          >
+            Community
+          </button>
+        </div>
+
+        <section class="panel" id="p-routes">
+          <h2>Compare routes</h2>
+          <p class="hint">
+            Choose where you are going. We show the evidence we have for each
+            route.
+          </p>
+          <div class="sel2">
+            <div>
+              <label for="from">From</label
+              ><select id="from"></select>
+            </div>
+            <div>
+              <label for="to">To</label
+              ><select id="to"></select>
+            </div>
+          </div>
+          <div class="btnrow" style="margin-top: 12px">
+            <button class="btn" id="findBtn">Find routes</button>
+          </div>
+          <div id="findMsg" role="status"></div>
+          <div id="routeBox" hidden>
+            <div id="routeList"></div>
+            <div class="btnrow">
+              <button class="btn" id="cmpBtn">Compare routes</button>
+            </div>
+            <div id="compare" hidden></div>
+            <div id="details"></div>
+          </div>
+        </section>
+
+        <section class="panel" id="p-report" hidden>
+          <h2>Report a street issue</h2>
+          <p class="hint">
+            Tell us what is wrong and where. The city team reviews every report.
+            Nothing is treated as verified until they check it.
+          </p>
+          <form id="reportForm" novalidate>
+            <label for="type">Issue category</label>
+            <select id="type"></select>
+            <label>Location</label>
+            <div class="loc" id="loc">
+              Click a spot on the map to set the location.
+            </div>
+            <label for="desc">Description</label>
+            <textarea
+              id="desc"
+              placeholder="Example: Three street lights are off near the bus stop."
+            ></textarea>
+            <label for="img">Photo (optional)</label>
+            <input type="file" id="img" accept="image/*" />
+            <div class="btnrow" style="margin-top: 14px">
+              <button type="submit" class="btn">Submit report</button>
+            </div>
+            <div class="msg" id="rmsg" role="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="panel" id="p-community" hidden>
+          <h2>Community observations</h2>
+          <p class="hint">
+            See what others have reported and where each report stands.
+          </p>
+          <div class="filters">
+            <button class="chip" data-f="all" aria-pressed="true">
+              All reports
+            </button>
+            <button class="chip" data-f="mine" aria-pressed="false">
+              My reports
+            </button>
+          </div>
+          <div id="issueList"></div>
+        </section>
+      </aside>
+
+      <main class="mapwrap">
+        <div
+          id="map"
+          aria-label="City map with routes and reported issues"
+        ></div>
+        <div class="mapfilter">
+          <label for="mapCat">Show on map</label
+          ><select id="mapCat"></select>
+        </div>
+        <div class="legend">
+          <span style="background: #d98a00"></span>Pending
+          <span style="background: #2f6fdb"></span>Verified
+          <span style="background: #1f8a5b"></span>Resolved
+          <span style="background: #8b95a3"></span>Rejected
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+      /* ===== SAMPLE DATA (replace with API data: GET /api/reports, POST /api/routes/compare) ===== */
+      var CATS = [
+        "Poor lighting",
+        "Damaged footpath",
+        "Blocked walkway",
+        "Unsafe crossing",
+        "Accessibility barrier",
+        "Other",
+      ];
+      var PLACES = ["Master Canteen", "Jaydev Vihar", "Patia", "Old Town"];
+      var MIN = 3; /* an indicator needs at least this many observations to be scored */
+      var INDICATORS = [
+        { key: "lighting", label: "Street lighting" },
+        { key: "footpath", label: "Footpath condition" },
+        { key: "crossings", label: "Crossing infrastructure" },
+        { key: "access", label: "Pedestrian accessibility" },
+      ];
+      /* scores: [value out of 5, number of observations] */
+      var ROUTES = [
+        {
+          id: "A",
+          name: "Janpath main road",
+          mins: 22,
+          km: 5.1,
+          color: "#2f6fdb",
+          updated: "20 Nov 2026",
+          scores: {
+            lighting: [4.5, 14],
+            footpath: [3.8, 11],
+            crossings: [4.2, 9],
+            access: [4.0, 6],
+          },
+          coords: [
+            [20.2689, 85.8434],
+            [20.274, 85.84],
+            [20.28, 85.835],
+            [20.288, 85.83],
+            [20.296, 85.8246],
+          ],
+        },
+        {
+          id: "B",
+          name: "Nandankanan Road",
+          mins: 27,
+          km: 5.9,
+          color: "#8a4fd0",
+          updated: "12 Nov 2026",
+          scores: {
+            lighting: [3.2, 8],
+            footpath: [2.9, 7],
+            crossings: [3.0, 5],
+            access: [2.6, 4],
+          },
+          coords: [
+            [20.2689, 85.8434],
+            [20.272, 85.848],
+            [20.283, 85.846],
+            [20.29, 85.835],
+            [20.296, 85.8246],
+          ],
+        },
+        {
+          id: "C",
+          name: "Saheed Nagar inner lanes",
+          mins: 25,
+          km: 5.4,
+          color: "#0e8f8f",
+          updated: "9 Nov 2026",
+          scores: {
+            lighting: [2.8, 6],
+            footpath: [3.5, 5],
+            crossings: [3.9, 4],
+            access: [3.4, 2],
+          },
+          coords: [
+            [20.2689, 85.8434],
+            [20.265, 85.838],
+            [20.275, 85.83],
+            [20.286, 85.823],
+            [20.296, 85.8246],
+          ],
+        },
+      ];
+      var ISSUES = [
+        {
+          id: 1,
+          type: "Poor lighting",
+          route: "C",
+          lat: 20.275,
+          lng: 85.83,
+          text: "Four street lights are off near the market lane.",
+          status: "verified",
+          votes: 14,
+          when: "20 Nov, 6:40 pm",
+          mine: false,
+          sample: true,
+        },
+        {
+          id: 2,
+          type: "Damaged footpath",
+          route: "B",
+          lat: 20.283,
+          lng: 85.846,
+          text: "Broken slabs on the footpath, risky for older people.",
+          status: "verified",
+          votes: 9,
+          when: "18 Nov, 9:10 am",
+          mine: true,
+          sample: true,
+        },
+        {
+          id: 3,
+          type: "Unsafe crossing",
+          route: "A",
+          lat: 20.28,
+          lng: 85.835,
+          text: "Zebra crossing has faded and traffic does not slow down.",
+          status: "pending",
+          votes: 21,
+          when: "21 Nov, 5:15 pm",
+          mine: false,
+          sample: true,
+        },
+        {
+          id: 4,
+          type: "Blocked walkway",
+          route: "B",
+          lat: 20.272,
+          lng: 85.848,
+          text: "Vendors' carts block the whole walkway in the evening.",
+          status: "pending",
+          votes: 6,
+          when: "22 Nov, 8:05 am",
+          mine: true,
+          sample: true,
+        },
+        {
+          id: 5,
+          type: "Poor lighting",
+          route: "A",
+          lat: 20.288,
+          lng: 85.83,
+          text: "Dark stretch after the flyover. New lamps installed.",
+          status: "resolved",
+          votes: 17,
+          when: "15 Nov, 7:30 pm",
+          mine: false,
+          sample: true,
+        },
+        {
+          id: 6,
+          type: "Accessibility barrier",
+          route: "C",
+          lat: 20.286,
+          lng: 85.823,
+          text: "No ramp at the footbridge. Wheelchair users cannot cross.",
+          status: "pending",
+          votes: 11,
+          when: "19 Nov, 11:20 am",
+          mine: false,
+          sample: true,
+        },
+        {
+          id: 7,
+          type: "Other",
+          route: null,
+          lat: 20.278,
+          lng: 85.842,
+          text: "Test message, no infrastructure problem described.",
+          status: "rejected",
+          votes: 0,
+          when: "17 Nov, 2:00 pm",
+          mine: false,
+          sample: true,
+        },
+      ];
+      var STATUS = {
+        pending: { label: "Pending", color: "#d98a00", step: 1 },
+        verified: { label: "Verified", color: "#2f6fdb", step: 2 },
+        resolved: { label: "Resolved", color: "#1f8a5b", step: 3 },
+        rejected: { label: "Rejected", color: "#8b95a3", step: 0 },
+      };
+
+      /* ===== HELPERS ===== */
+      var $ = (id) => document.getElementById(id);
+      var esc = (s) => {
+        var d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      };
+      var valid = (r) => INDICATORS.filter((i) => r.scores[i.key][1] >= MIN);
+      var score = (r) => {
+        var v = valid(r);
+        return v.length < 2
+          ? null
+          : v.reduce((t, i) => t + r.scores[i.key][0], 0) / v.length;
+      };
+      var obs = (r) => INDICATORS.reduce((t, i) => t + r.scores[i.key][1], 0);
+      var cls = (v) => (v >= 4 ? "g" : v >= 3.2 ? "m" : "b");
+      var openCount = (id) =>
+        ISSUES.filter(
+          (i) =>
+            i.route === id &&
+            (i.status === "pending" || i.status === "verified"),
+        ).length;
+      var fill = (id, items) => {
+        $(id).innerHTML = items
+          .map((x) => `<option value="${esc(x)}">${esc(x)}</option>`)
+          .join("");
+      };
+      var routeById = (id) => ROUTES.filter((r) => r.id === id)[0];
+
+      fill("from", PLACES);
+      fill("to", PLACES);
+      $("to").selectedIndex = 1;
+      fill("type", CATS);
+      $("mapCat").innerHTML =
+        '<option value="">All categories</option>' +
+        CATS.map((c) => `<option>${esc(c)}</option>`).join("");
+
+      /* ===== MAP ===== */
+      var map = L.map("map").setView([20.281, 85.835], 13);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+      var lines = {},
+        markers = {},
+        selected = null,
+        picked = null,
+        pickMarker = null;
+      ROUTES.forEach((r) => {
+        lines[r.id] = L.polyline(r.coords, {
+          color: r.color,
+          weight: 5,
+          opacity: 0.55,
+        });
+        lines[r.id].on("click", () => selectRoute(r.id));
+      });
+      var ends = L.layerGroup([
+        L.circleMarker(ROUTES[0].coords[0], {
+          radius: 8,
+          color: "#1b2430",
+          fillColor: "#fff",
+          fillOpacity: 1,
+          weight: 3,
+        }).bindTooltip("Master Canteen"),
+        L.circleMarker(ROUTES[0].coords[4], {
+          radius: 8,
+          color: "#1b2430",
+          fillColor: "#f6c90e",
+          fillOpacity: 1,
+          weight: 3,
+        }).bindTooltip("Jaydev Vihar"),
+      ]);
+
+      function applyFilter(i) {
+        var c = $("mapCat").value,
+          m = markers[i.id];
+        if (!c || i.type === c) m.addTo(map);
+        else map.removeLayer(m);
+      }
+      function drawMarker(i) {
+        if (markers[i.id]) map.removeLayer(markers[i.id]);
+        var m = L.circleMarker([i.lat, i.lng], {
+          radius: 9,
+          color: "#fff",
+          weight: 2,
+          fillColor: STATUS[i.status].color,
+          fillOpacity: 1,
+        });
+        m.bindPopup(
+          `<b>${esc(i.type)}</b><br>${esc(i.text)}<br><i>${STATUS[i.status].label}</i> &middot; ${esc(i.when)}${i.sample ? "<br><small>Sample data</small>" : ""}`,
+        );
+        markers[i.id] = m;
+        applyFilter(i);
+      }
+      ISSUES.forEach(drawMarker);
+      $("mapCat").addEventListener("change", () => ISSUES.forEach(applyFilter));
+
+      /* ===== ROUTES ===== */
+      function hideRoutes() {
+        $("routeBox").hidden = true;
+        selected = null;
+        ROUTES.forEach((r) => map.removeLayer(lines[r.id]));
+        map.removeLayer(ends);
+      }
+      $("findBtn").addEventListener("click", () => {
+        var a = $("from").value,
+          b = $("to").value,
+          m = $("findMsg");
+        if (a === b) {
+          hideRoutes();
+          m.className = "msg err";
+          m.textContent = "Choose two different places.";
+          return;
+        }
+        var hasData =
+          [a, b].sort().join() ===
+          [PLACES[0], PLACES[1]]
+            .sort()
+            .join(); /* TODO: replace with POST /api/routes/compare */
+        if (!hasData) {
+          hideRoutes();
+          m.className = "lim";
+          m.textContent =
+            "Limited data available. We have no route observations between " +
+            a +
+            " and " +
+            b +
+            " yet.";
+          return;
+        }
+        m.className = "";
+        m.textContent = "";
+        $("routeBox").hidden = false;
+        $("compare").hidden = true;
+        $("cmpBtn").textContent = "Compare routes";
+        ROUTES.forEach((r) => lines[r.id].addTo(map));
+        ends.addTo(map);
+        selectRoute("A");
+      });
+
+      function renderRoutes() {
+        $("routeList").innerHTML = ROUTES.map((r) => {
+          var s = score(r);
+          return `<button class="route" data-id="${r.id}" style="--c:${r.color}" aria-pressed="${selected === r.id}">
+      <div class="r1"><strong>${esc(r.name)}</strong>${s ? `<span class="score ${cls(s)}">${s.toFixed(1)} / 5</span>` : '<span class="score" style="background:#8b95a3">Limited data</span>'}</div>
+      <small>${r.mins} min walk &middot; ${r.km} km &middot; ${obs(r)} observations &middot; ${openCount(r.id)} open reports</small></button>`;
+        }).join("");
+      }
+      $("routeList").addEventListener("click", (e) => {
+        var b = e.target.closest(".route");
+        if (b) selectRoute(b.dataset.id);
+      });
+
+      function selectRoute(id) {
+        selected = id;
+        ROUTES.forEach((r) => {
+          lines[r.id].setStyle({
+            weight: r.id === id ? 8 : 4,
+            opacity: r.id === id ? 1 : 0.45,
+          });
+          if (r.id === id) lines[r.id].bringToFront();
+        });
+        map.fitBounds(lines[id].getBounds(), { padding: [50, 50] });
+        renderRoutes();
+        renderDetails(id);
+        showPanel("routes");
+      }
+
+      function renderDetails(id) {
+        var r = routeById(id),
+          s = score(r),
+          v = valid(r);
+        var bars = INDICATORS.map((i) => {
+          var [val, n] = r.scores[i.key];
+          if (n < MIN)
+            return `<div class="ind"><span>${i.label}</span><span class="muted">Limited data (${n} obs)</span><b></b></div>`;
+          var col = val >= 4 ? "#1f8a5b" : val >= 3.2 ? "#d98a00" : "#c0392b";
+          return `<div class="ind"><span>${i.label}<br><small class="muted">${n} observations</small></span><div class="bar"><i style="width:${(val / 5) * 100}%;background:${col}"></i></div><b>${val.toFixed(1)}</b></div>`;
+        }).join("");
+
+        var tips = [];
+        var low = (k) => r.scores[k][1] >= MIN && r.scores[k][0] < 3.5;
+        if (low("lighting"))
+          tips.push(
+            "Lighting observations are weak in places. Consider another route after dark.",
+          );
+        if (low("footpath"))
+          tips.push("Some footpaths are reported as damaged. Watch your step.");
+        if (low("crossings"))
+          tips.push("Crossing infrastructure is limited. Cross with care.");
+        if (low("access"))
+          tips.push(
+            "Few ramps reported. This may be hard for wheelchairs, prams and walking aids.",
+          );
+        if (v.length < 4)
+          tips.push(
+            "Some indicators have too little data. Treat this route's picture as incomplete.",
+          );
+        if (!tips.length)
+          tips.push(
+            "Available evidence shows no major concerns on this route.",
+          );
+
+        var list = ISSUES.filter(
+          (i) =>
+            i.route === id &&
+            (i.status === "pending" || i.status === "verified"),
+        );
+        var issues = list.length
+          ? list
+              .map(
+                (i) =>
+                  `<li>${esc(i.type)} (${STATUS[i.status].label.toLowerCase()})</li>`,
+              )
+              .join("")
+          : "<li>No open reports on this route.</li>";
+
+        $("details").innerHTML =
+          `<div class="box"><h3>${s ? "Route-condition score: " + s.toFixed(1) + " / 5" : "Limited data available"}</h3>
+      <p class="muted">${s ? `Average of the ${v.length} of 4 indicators that have ${MIN} or more observations.` : "Not enough observations to give a score."}
+      Based on ${obs(r)} observations, last updated ${r.updated}.</p></div>
+    <div class="box"><h3>${esc(r.name)}: indicator breakdown</h3>${bars}</div>
+    <div class="box"><h3>Before you travel</h3><ul>${tips.map((t) => "<li>" + t + "</li>").join("")}</ul></div>
+    <div class="box"><h3>Relevant community reports</h3><ul>${issues}</ul></div>
+    <div class="disc">This score shows the evidence we have. It is not a guarantee of personal safety. Demo uses sample data.</div>`;
+      }
+
+      $("cmpBtn").addEventListener("click", () => {
+        var box = $("compare");
+        box.hidden = !box.hidden;
+        $("cmpBtn").textContent = box.hidden
+          ? "Compare routes"
+          : "Hide comparison";
+        if (box.hidden) return;
+        var head =
+          "<tr><th></th>" +
+          ROUTES.map((r) => `<th>${r.id}</th>`).join("") +
+          "</tr>";
+        var rows = INDICATORS.map((i) => {
+          var best = Math.max(
+            ...ROUTES.filter((r) => r.scores[i.key][1] >= MIN).map(
+              (r) => r.scores[i.key][0],
+            ),
+          );
+          return (
+            `<tr><td>${i.label}</td>` +
+            ROUTES.map((r) => {
+              var [v, n] = r.scores[i.key];
+              return n < MIN
+                ? '<td class="muted">Limited</td>'
+                : `<td class="${v === best ? "best" : ""}">${v.toFixed(1)}</td>`;
+            }).join("") +
+            "</tr>"
+          );
+        }).join("");
+        var scored = ROUTES.map(score),
+          bestAll = Math.max(...scored.filter((x) => x !== null));
+        rows +=
+          "<tr><td><b>Overall</b></td>" +
+          scored
+            .map((x) =>
+              x === null
+                ? '<td class="muted">Limited</td>'
+                : `<td class="${x === bestAll ? "best" : ""}">${x.toFixed(1)}</td>`,
+            )
+            .join("") +
+          "</tr>";
+        rows +=
+          "<tr><td>Observations</td>" +
+          ROUTES.map((r) => `<td>${obs(r)}</td>`).join("") +
+          "</tr>";
+        rows +=
+          "<tr><td>Data coverage</td>" +
+          ROUTES.map((r) => `<td>${valid(r).length} of 4</td>`).join("") +
+          "</tr>";
+        rows +=
+          "<tr><td>Last updated</td>" +
+          ROUTES.map((r) => `<td>${r.updated.slice(0, -5)}</td>`).join("") +
+          "</tr>";
+        rows +=
+          "<tr><td>Open reports</td>" +
+          ROUTES.map((r) => `<td>${openCount(r.id)}</td>`).join("") +
+          "</tr>";
+        box.innerHTML = `<table class="tbl">${head}${rows}</table>
+    <p class="hint" style="margin-top:10px">A = Janpath, B = Nandankanan, C = Saheed Nagar. Highlighted cells have the best score in each row (out of 5). "Limited" means fewer than ${MIN} observations. Scores show evidence, not a safety guarantee.</p>`;
+      });
+
+      /* ===== REPORT ===== */
+      map.on("click", (e) => {
+        if ($("p-report").hidden) return;
+        picked = e.latlng;
+        if (pickMarker) map.removeLayer(pickMarker);
+        pickMarker = L.marker(picked).addTo(map);
+        $("loc").textContent =
+          "Location set: " +
+          picked.lat.toFixed(4) +
+          ", " +
+          picked.lng.toFixed(4);
+        $("loc").className = "loc set";
+      });
+
+      $("reportForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        var msg = $("rmsg"),
+          text = $("desc").value.trim(),
+          f = $("img").files[0];
+        msg.className = "msg err";
+        if (!picked) {
+          msg.textContent = "Click the map to set the location first.";
+          return;
+        }
+        if (text.length < 10) {
+          msg.textContent = "Add a short description (at least 10 characters).";
+          return;
+        }
+        if (f && (f.type.indexOf("image/") !== 0 || f.size > 5 * 1024 * 1024)) {
+          msg.textContent = "Choose an image file under 5 MB.";
+          return;
+        }
+
+        var type = $("type").value;
+        var dup = ISSUES.filter(
+          (i) =>
+            i.type === type &&
+            (i.status === "pending" || i.status === "verified") &&
+            Math.hypot(i.lat - picked.lat, i.lng - picked.lng) < 0.0012,
+        )[0];
+        var issue = {
+          id: Date.now(),
+          type: type,
+          route: null,
+          lat: picked.lat,
+          lng: picked.lng,
+          text: text,
+          status: "pending",
+          votes: 1,
+          when: new Date().toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          mine: true,
+          photo: f ? f.name : null,
+        };
+        ISSUES.unshift(
+          issue,
+        ); /* TODO: POST /api/reports (multipart: category, description, lat, lng, image) */
+        drawMarker(issue);
+        if (pickMarker) {
+          map.removeLayer(pickMarker);
+          pickMarker = null;
+        }
+        picked = null;
+        $("loc").textContent = "Click a spot on the map to set the location.";
+        $("loc").className = "loc";
+        $("desc").value = "";
+        $("img").value = "";
+        msg.className = "msg ok";
+        msg.textContent =
+          "Report submitted as Pending. The city team will review it." +
+          (dup
+            ? " A similar report (#" +
+              dup.id +
+              ") already exists nearby, so this one may be marked as a duplicate."
+            : "");
+        renderIssues();
+      });
+
+      /* ===== COMMUNITY ===== */
+      var filter = "all";
+      document.querySelectorAll(".chip").forEach((c) =>
+        c.addEventListener("click", () => {
+          filter = c.dataset.f;
+          document
+            .querySelectorAll(".chip")
+            .forEach((x) =>
+              x.setAttribute("aria-pressed", x === c ? "true" : "false"),
+            );
+          renderIssues();
+        }),
+      );
+      function renderIssues() {
+        var list = ISSUES.filter((i) => filter === "all" || i.mine);
+        if (!list.length) {
+          $("issueList").innerHTML =
+            '<p class="hint">You have not reported anything yet.</p>';
+          return;
+        }
+        $("issueList").innerHTML = list
+          .map((i) => {
+            var s = STATUS[i.status],
+              track = "";
+            for (var n = 1; n <= 3; n++)
+              track += `<i class="${n <= s.step ? "on" : ""}"></i>`;
+            return `<div class="issue"><div class="t"><b>${esc(i.type)}</b><span class="badge st-${i.status}">${s.label}</span></div>
+      <p>${esc(i.text)}</p>${i.photo ? `<p class="muted">Photo attached: ${esc(i.photo)}</p>` : ""}
+      <div class="track" aria-hidden="true">${track}</div>
+      <div class="meta"><span>${esc(i.when)}${i.mine ? " &middot; Your report" : ""}${i.sample ? " &middot; Sample" : ""}</span>
+      <span><button class="mini" data-id="${i.id}" data-a="vote">I see this too (${i.votes})</button> <button class="mini" data-id="${i.id}" data-a="show">Show on map</button></span></div></div>`;
+          })
+          .join("");
+      }
+      $("issueList").addEventListener("click", (e) => {
+        var b = e.target.closest(".mini");
+        if (!b) return;
+        var it = ISSUES.filter((x) => String(x.id) === b.dataset.id)[0];
+        if (b.dataset.a === "vote") {
+          it.votes++;
+          renderIssues();
+        } else {
+          map.setView([it.lat, it.lng], 16);
+          markers[it.id].addTo(map).openPopup();
+        }
+      });
+
+      /* ===== TABS ===== */
+      function showPanel(name) {
+        ["routes", "report", "community"].forEach((p) => {
+          $("p-" + p).hidden = p !== name;
+          $("t-" + p).setAttribute(
+            "aria-selected",
+            p === name ? "true" : "false",
+          );
+        });
+      }
+      document
+        .querySelectorAll(".tabs button")
+        .forEach((b) =>
+          b.addEventListener("click", () => showPanel(b.dataset.p)),
+        );
+
+      /* ===== START ===== */
+      renderIssues();
+      $("findBtn").click();
+      if (location.hash === "#report") showPanel("report");
+    </script>
+  </body>
+</html>
